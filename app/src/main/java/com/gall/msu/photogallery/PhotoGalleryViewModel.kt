@@ -1,8 +1,13 @@
 package com.gall.msu.photogallery
 
 import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.DataSource
+import androidx.paging.LivePagedListBuilder
+import androidx.paging.PagedList
 import com.gall.msu.photogallery.api.GalleryItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,20 +19,21 @@ private const val TAG = "PhotoGalleryViewModel"
 class PhotoGalleryViewModel : ViewModel() {
     private val photoRepository = PhotoRepository()
 
-    private val _galleryItems: MutableStateFlow<List<GalleryItem>> =
-        MutableStateFlow(emptyList())
-    val galleryItems: StateFlow<List<GalleryItem>>
-        get() = _galleryItems.asStateFlow()
+    private val pageSize = 50
+    private val config = PagedList.Config.Builder()
+        .setPageSize(pageSize)
+        .setEnablePlaceholders(false)
+        .build()
 
-    init {
-        viewModelScope.launch {
-            try {
-                val items = photoRepository.fetchPhotos()
-                Log.d(TAG, "Items received: $items")
-                _galleryItems.value = items
-            } catch (ex: Exception) {
-                Log.e(TAG, "Failed to fetch gallery items", ex)
+    val galleryItems: LiveData<PagedList<GalleryItem>> by lazy {
+        val dataSourceFactory =
+            object : DataSource.Factory<Int, GalleryItem>() {
+                override fun create(): DataSource<Int, GalleryItem> {
+                    return PhotoDataSource(viewModelScope, photoRepository)
+                }
             }
-        }
+
+        LivePagedListBuilder(dataSourceFactory, config).build()
     }
 }
+

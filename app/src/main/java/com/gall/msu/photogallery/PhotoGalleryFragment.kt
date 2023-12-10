@@ -36,14 +36,17 @@ class PhotoGalleryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                photoGalleryViewModel.galleryItems.collect { items ->
-                    binding.photoGrid.adapter = PhotoListAdapter(items)
-                }
-            }
+        val adapter = PhotoListAdapter()
+
+        binding.photoGrid.layoutManager = GridLayoutManager(context, 3)
+        binding.photoGrid.adapter = adapter
+
+        photoGalleryViewModel.galleryItems.observe(viewLifecycleOwner) { pagedList ->
+            adapter.submitList(pagedList)
         }
     }
+
+
 
     override fun onDestroyView() {
         super.onDestroyView()
